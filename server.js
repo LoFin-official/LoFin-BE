@@ -11,6 +11,7 @@ const seedCategories = require("./utils/categorySeeder"); // 카테고리 초기
 const coupleRouter = require("./routes/coupleLink"); // 커플 연결 라우터 추가
 const firstMetRouter = require("./routes/firstMet"); // 처음 만난 날짜 관련 라우터 추가
 const passwordRouter = require("./routes/password");
+const stickerRouter = require("./routes/emoticon"); // 스티커 관련 라우터 추가
 const anniversaryRoutes = require("./routes/anniversary"); // 기념일 관련 라우터 추가
 const cron = require("node-cron"); // node-cron 패키지 추가
 
@@ -81,6 +82,7 @@ app.use("/wishlistUpdate", wishlistUpdateRoutes); // 위시리스트 수정 라�
 app.use("/coupleLink", coupleRouter); // 커플 연결 라우터 경로 추가
 app.use("/firstMet", firstMetRouter); // 처음 만난 날짜 라우터 경로 추가
 app.use("/password", passwordRouter);
+app.use("/emoticon", stickerRouter); // 스티커 라우터 경로 추가
 app.use("/anniversary", anniversaryRoutes); // 기념일 관련 라우터 경로 추가
 
 const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
