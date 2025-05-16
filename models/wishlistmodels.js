@@ -32,7 +32,11 @@ const userCategorySelectionSchema = new mongoose.Schema(
       type: String, // ObjectId에서 String으로 변경
       required: true,
     },
-
+    partnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     selectedCategories: [
       {
         mainCategory: String,
