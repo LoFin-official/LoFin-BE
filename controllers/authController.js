@@ -1,6 +1,82 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+// controllers/authController.js
 
+const nodemailer = require("nodemailer"); // 이메일 발송용 (설치 필요: npm i nodemailer)
+
+// 간단한 메모리 저장소 (운영에선 DB나 Redis 추천)
+const verificationCodes = {};
+
+// 이메일 인증 코드 발송
+const sendVerificationCode = async (req, res) => {
+  const { loginId } = req.body;
+
+  try {
+    // 인증코드 6자리 생성
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 코드 저장 (유효기간 5분 설정 예시)
+    verificationCodes[loginId] = { code, expires: Date.now() + 5 * 60 * 1000 };
+
+    // 이메일 발송 (간단 예시: Gmail SMTP)
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "your_email@gmail.com",
+        pass: "your_app_password", // 앱 비밀번호 권장
+      },
+    });
+
+    const mailOptions = {
+      from: "your_email@gmail.com",
+      to: loginId,
+      subject: "비밀번호 재설정 인증 코드",
+      text: `인증 코드는 ${code} 입니다. 5분 내에 입력해주세요.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "인증 코드가 전송되었습니다." });
+  } catch (err) {
+    console.error("인증 코드 발송 실패:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "인증 코드 발송 실패" });
+  }
+};
+
+// 인증 코드 검증
+const verifyCode = (req, res) => {
+  const { loginId, code } = req.body;
+  const record = verificationCodes[loginId];
+
+  if (!record) {
+    return res
+      .status(400)
+      .json({ success: false, message: "인증 요청이 없습니다." });
+  }
+
+  if (Date.now() > record.expires) {
+    delete verificationCodes[loginId];
+    return res
+      .status(400)
+      .json({ success: false, message: "인증 코드가 만료되었습니다." });
+  }
+
+  if (record.code !== code) {
+    return res
+      .status(400)
+      .json({ success: false, message: "인증 코드가 일치하지 않습니다." });
+  }
+
+  // 인증 성공 시 저장된 코드 삭제
+  delete verificationCodes[loginId];
+  return res
+    .status(200)
+    .json({ success: true, message: "인증이 완료되었습니다." });
+};
 const resetPasswordRequest = async (req, res) => {
   const { loginId } = req.body;
 
@@ -49,4 +125,9 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { resetPassword, resetPasswordRequest };
+module.exports = {
+  sendVerificationCode,
+  verifyCode,
+  resetPasswordRequest,
+  resetPassword,
+};

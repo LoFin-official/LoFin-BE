@@ -1,7 +1,7 @@
+require("dotenv").config(); // .env 파일을 로드
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const dotenv = require("dotenv");
 const authRoutes = require("./routes/auth");
 const profileRoutes = require("./routes/profile");
 const profileUpdateRoutes = require("./routes/profileUpdate");
@@ -14,13 +14,21 @@ const passwordRouter = require("./routes/password");
 const stickerRouter = require("./routes/emoticon"); // 스티커 관련 라우터 추가
 const anniversaryRoutes = require("./routes/anniversary"); // 기념일 관련 라우터 추가
 const cron = require("node-cron"); // node-cron 패키지 추가
-
-dotenv.config();
+const recommendRoutes = require("./routes/recommend");
+const authenticate = require("./middleware/authMiddleware");
+const giftRouter = require("./routes/gift");
+const cors = require("cors");
 
 const app = express();
 app.use(express.json());
 app.use(bodyParser.json());
-
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://192.168.35.111:3000"],
+    methods: ["GET", "POST", "PUT"],
+    credentials: true,
+  })
+);
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -84,6 +92,8 @@ app.use("/firstMet", firstMetRouter); // 처음 만난 날짜 라우터 경로 �
 app.use("/password", passwordRouter);
 app.use("/emoticon", stickerRouter); // 스티커 라우터 경로 추가
 app.use("/anniversary", anniversaryRoutes); // 기념일 관련 라우터 경로 추가
+app.use("/recommend", recommendRoutes); // 추천 라우터 경로 추가
+app.use("/gift", giftRouter); // 선물 추천 라우터 경로 추가
 
 const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
 app.listen(PORT, () => {

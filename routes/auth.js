@@ -5,6 +5,7 @@ const { sendVerificationEmail } = require("../utils/mailer");
 const mongoose = require("mongoose");
 const router = express.Router();
 const loginRouter = require("./login"); // login.js 경로 확인
+const jwt = require("jsonwebtoken"); // 추가
 
 // 임시 메모리 저장에서 MongoDB로 인증 코드 저장
 const VerificationCode = mongoose.model(
@@ -97,17 +98,36 @@ router.post("/register", async (req, res) => {
   }
 
   try {
+    const existingUser = await User.findOne({ loginId });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "이미 존재하는 이메일입니다." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 먼저 user 저장 (memberId 없이)
+    // user 생성
     const user = new User({ loginId, password: hashedPassword });
     await user.save();
 
-    // _id 기반으로 memberId 설정 후 다시 저장
+    // _id 기반 memberId 설정
     user.memberId = user._id.toString();
     await user.save();
 
-    res.json({ success: true, message: "회원가입 완료" });
+    // ✅ JWT 토큰 발급
+    const token = jwt.sign(
+      { memberId: user.memberId, loginId: user.loginId },
+      process.env.JWT_SECRET, // 환경 변수에서 비밀키 사용
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      success: true,
+      message: "회원가입 및 로그인 성공",
+      token, // ⬅ 프론트에 전달
+      memberId: user.memberId,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "회원가입 실패" });
