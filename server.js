@@ -18,6 +18,11 @@ const recommendRoutes = require("./routes/recommend");
 const authenticate = require("./middleware/authMiddleware");
 const giftRouter = require("./routes/gift");
 const cors = require("cors");
+const memoryRoutes = require("./routes/memoryRoutes"); // 추억 라우터 추가
+const questionRoutes = require('./routes/questionRoutes'); // 질문 라우터 추가
+
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -94,6 +99,9 @@ app.use("/emoticon", stickerRouter); // 스티커 라우터 경로 추가
 app.use("/anniversary", anniversaryRoutes); // 기념일 관련 라우터 경로 추가
 app.use("/recommend", recommendRoutes); // 추천 라우터 경로 추가
 app.use("/gift", giftRouter); // 선물 추천 라우터 경로 추가
+app.use("/memory", memoryRoutes); // 추억 라우터 경로 추가
+app.use("/question", questionRoutes); // 질문 라우터 경로 추가
+
 
 const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
 app.listen(PORT, () => {
