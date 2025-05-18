@@ -5,7 +5,7 @@ const auth = require("../middleware/authMiddleware");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 
-// ✅ 모든 카테고리 조회
+//  모든 카테고리 조회
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Category.find();
@@ -15,7 +15,7 @@ router.get("/categories", async (req, res) => {
   }
 });
 
-// ✅ 서브카테고리 조회
+//  서브카테고리 조회
 router.get("/categories/:categoryName", async (req, res) => {
   try {
     const category = await Category.findOne({ name: req.params.categoryName });
@@ -98,7 +98,7 @@ router.post("/selection", auth, async (req, res) => {
   }
 });
 
-// ✅ 선택 완료
+//  선택 완료
 router.post("/selection/complete", auth, async (req, res) => {
   try {
     const memberId = req.memberId;
@@ -137,7 +137,7 @@ router.post("/selection/complete", auth, async (req, res) => {
   }
 });
 
-// ✅ 선택 건너뛰기
+//  선택 건너뛰기
 router.post("/selection/skip", auth, async (req, res) => {
   try {
     const memberId = req.memberId;

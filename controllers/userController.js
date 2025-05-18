@@ -114,9 +114,34 @@ const calculateDaysSinceFirstMet = async (req, res) => {
     res.status(500).json({ message: "서버 오류", error: err.message });
   }
 };
+// 처음 만난 날짜 조회
+const getFirstMetDate = async (req, res) => {
+  try {
+    const memberId = req.memberId;
+
+    const user = await User.findById(memberId);
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    if (!user.firstMetDate) {
+      return res
+        .status(404)
+        .json({ message: "처음 만난 날짜가 설정되지 않았습니다." });
+    }
+
+    res
+      .status(200)
+      .json({ firstMetDate: user.firstMetDate.toISOString().split("T")[0] }); // YYYY-MM-DD 형태로 응답
+  } catch (err) {
+    console.error("처음 만난 날짜 조회 오류:", err);
+    res.status(500).json({ message: "서버 오류", error: err.message });
+  }
+};
 
 module.exports = {
   setFirstMetDate,
   calculateDaysSinceFirstMet,
   updateFirstMetDate,
+  getFirstMetDate,
 };

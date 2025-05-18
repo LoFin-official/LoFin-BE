@@ -1,74 +1,73 @@
 const { UserCategorySelection } = require("../models/wishlistmodels");
 const User = require("../models/User");
 
-const updateWishlistItem = async (req, res) => {
+// controllers/wishlistController.js
+const getWishlist = async (req, res) => {
   try {
-    const { selectedCategories, details = {} } = req.body;
-    const memberId = req.memberId;
+    const memberId = req.memberId; // auth 미들웨어에서 넣어준 memberId
 
-    // 유효성 검사
-    if (!Array.isArray(selectedCategories) || selectedCategories.length === 0) {
-      return res.status(400).json({ message: "선택된 카테고리가 없습니다." });
+    if (!memberId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "사용자 정보가 없습니다." });
     }
 
-    // 사용자 정보 조회 (partnerId 자동 조회)
-    const user = await User.findOne({ memberId });
-    if (!user || !user.partnerId) {
-      return res.status(400).json({ message: "상대방 정보가 없습니다." });
-    }
+    // memberId로 위시리스트 찾기
+    const wishlist = await UserCategorySelection.findOne({ memberId });
 
-    const partnerId = user.partnerId;
-
-    // 기존 선택 내역 조회
-    let selection = await UserCategorySelection.findOne({
-      memberId,
-      partnerId,
-    });
-    if (!selection) {
+    if (!wishlist) {
       return res
         .status(404)
-        .json({ message: "위시리스트를 찾을 수 없습니다." });
+        .json({ success: false, message: "위시리스트가 존재하지 않습니다." });
     }
 
-    // 선택된 항목만 유지하도록 갱신
-    const updatedItems = [];
-
-    selectedCategories.forEach(({ mainCategory, subCategories }) => {
-      if (!mainCategory || !Array.isArray(subCategories)) return;
-
-      subCategories.forEach((subCategory) => {
-        const detail = details[subCategory] || subCategory;
-
-        updatedItems.push({
-          mainCategory,
-          subCategory,
-          details: detail,
-        });
-      });
+    res.json({
+      success: true,
+      selectedCategories: wishlist.selectedCategories || [],
+      details: wishlist.details || {}, // details가 스키마에 있다면
     });
-
-    // 전체 selectedCategories 업데이트
-    selection.selectedCategories = updatedItems;
-    selection.partnerId = partnerId;
-    selection.lastUpdated = Date.now();
-    selection.wishlistId = selection._id.toString(); // 갱신 보장
-
-    await selection.save();
-
-    // 응답 구조
-    const selectionWithWishlistIdAtTop = {
-      wishlistId: selection._id.toString(),
-      ...selection.toObject(),
-    };
-
-    res.status(200).json({
-      message: "위시리스트 항목이 수정되었습니다.",
-      selection: selectionWithWishlistIdAtTop,
+  } catch (error) {
+    console.error("위시리스트 조회 중 오류:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 오류로 위시리스트를 불러오지 못했습니다.",
     });
-  } catch (err) {
-    console.error("위시리스트 항목 수정 오류:", err);
-    res.status(500).json({ message: "서버 오류", error: err.message });
   }
 };
 
-module.exports = { updateWishlistItem };
+const updateWishlistItem = async (req, res) => {
+  try {
+    const memberId = req.memberId;
+    const { selectedCategories, details } = req.body;
+
+    if (!memberId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "사용자 정보가 없습니다." });
+    }
+
+    // 기존 데이터가 있으면 업데이트, 없으면 새로 생성
+    const updated = await UserCategorySelection.findOneAndUpdate(
+      { memberId },
+      { selectedCategories, details },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: "위시리스트가 성공적으로 업데이트 되었습니다.",
+      updated,
+    });
+  } catch (error) {
+    console.error("위시리스트 업데이트 중 오류:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 오류로 위시리스트 업데이트에 실패했습니다.",
+    });
+  }
+};
+
+module.exports = {
+  getWishlist,
+  updateWishlistItem,
+};

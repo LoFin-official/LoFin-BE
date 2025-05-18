@@ -1,4 +1,6 @@
 require("dotenv").config(); // .env 파일을 로드
+const path = require("path");
+
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -19,10 +21,9 @@ const authenticate = require("./middleware/authMiddleware");
 const giftRouter = require("./routes/gift");
 const cors = require("cors");
 const memoryRoutes = require("./routes/memoryRoutes"); // 추억 라우터 추가
-const questionRoutes = require('./routes/questionRoutes'); // 질문 라우터 추가
-
-
-dotenv.config();
+const questionRoutes = require("./routes/questionRoutes"); // 질문 라우터 추가
+const coupleProfileRoutes = require("./routes/coupleprofile"); // 커플 프로필 라우터 추가
+const answerRoutes = require("./routes/answer"); // 답변 라우터 추가
 
 const app = express();
 app.use(express.json());
@@ -30,10 +31,13 @@ app.use(bodyParser.json());
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://192.168.35.111:3000"],
-    methods: ["GET", "POST", "PUT"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
+// Express 서버 예시
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -101,7 +105,8 @@ app.use("/recommend", recommendRoutes); // 추천 라우터 경로 추가
 app.use("/gift", giftRouter); // 선물 추천 라우터 경로 추가
 app.use("/memory", memoryRoutes); // 추억 라우터 경로 추가
 app.use("/question", questionRoutes); // 질문 라우터 경로 추가
-
+app.use("/coupleprofile", coupleProfileRoutes); // 커플 프로필 라우터 경로 추가
+app.use("/answer", answerRoutes); // 답변 라우터 경로 추가
 
 const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
 app.listen(PORT, () => {

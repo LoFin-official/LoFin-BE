@@ -1,5 +1,5 @@
 const Anniversary = require("../models/anniversarymodels");
-const Gift = require("../models/giftItem");
+const Gift = require("../models/giftItem.js");
 
 // 가장 가까운 기념일 title 계산
 function getNearestAnniversaryTitle(anniversaries) {
