@@ -3,24 +3,23 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const User = require("../models/User");
-const authenticate = require("../middleware/authMiddleware"); // 인증 미들웨어 추가
+const authenticate = require("../middleware/authMiddleware");
 const router = express.Router();
 
-// multer 설정 (업로드된 파일을 'uploads' 폴더에 저장)
+// 업로드 설정
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // 파일 저장 위치
+    cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // 고유한 파일 이름 생성
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 파일 크기 제한 (5MB)
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    // 이미지 파일만 허용 (jpg, jpeg, png, gif)
     const filetypes = /jpeg|jpg|png|gif/;
     const extname = filetypes.test(
       path.extname(file.originalname).toLowerCase()
@@ -35,16 +34,42 @@ const upload = multer({
   },
 });
 
-// 프로필 수정 API (PUT)
+// ✅ 프로필 정보 가져오기 (초기 데이터 요청용)
+router.get("/", authenticate, async (req, res) => {
+  const memberId = req.memberId;
+
+  try {
+    const user = await User.findById(memberId).select(
+      "nickname birth profilePicture"
+    );
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error("프로필 조회 실패:", err);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "프로필 조회 실패",
+        error: err.message,
+      });
+  }
+});
+
+// ✅ 프로필 수정
 router.put(
-  "/update", // 프로필 수정
+  "/update",
   authenticate,
   upload.single("profilePicture"),
   async (req, res) => {
     const { nickname, birth } = req.body;
-    const memberId = req.memberId; // JWT에서 가져온 사용자 ID
+    const memberId = req.memberId;
 
-    // 생년월일 형식 확인 (yyyy-mm-dd)
     const birthdateFormat = /^\d{4}-\d{2}-\d{2}$/;
     if (birth && !birth.match(birthdateFormat)) {
       return res.status(400).json({
@@ -54,7 +79,6 @@ router.put(
       });
     }
 
-    // 프로필 사진 경로 (파일이 업로드되면 저장된 경로를 사용)
     const profilePicture = req.file ? `/uploads/${req.file.filename}` : null;
 
     try {
@@ -65,26 +89,29 @@ router.put(
           .json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
 
-      // 프로필 사진 삭제 (기존 사진 삭제 처리)
+      // 기존 이미지 삭제 (새 이미지가 있을 경우)
       if (user.profilePicture && profilePicture) {
         const existingImagePath = path.join(
           __dirname,
           "..",
           user.profilePicture
         );
-        if (fs.existsSync(existingImagePath)) {
-          fs.unlinkSync(existingImagePath);
+        try {
+          if (fs.existsSync(existingImagePath)) {
+            fs.unlinkSync(existingImagePath);
+          }
+        } catch (err) {
+          console.warn("기존 이미지 삭제 실패:", err.message);
         }
       }
 
-      // 사용자 정보 업데이트
       const updatedUser = await User.findByIdAndUpdate(
         memberId,
         {
           profilePicture: profilePicture || user.profilePicture,
           nickname: nickname || user.nickname,
           birth: birth ? new Date(birth) : user.birth,
-          updatedAt: new Date(), // 수동으로 updatedAt 갱신
+          updatedAt: new Date(),
         },
         { new: true }
       );
@@ -95,7 +122,7 @@ router.put(
         data: updatedUser,
       });
     } catch (err) {
-      console.error(err);
+      console.error("프로필 수정 실패:", err);
       res.status(500).json({
         success: false,
         message: "프로필 수정 실패",
