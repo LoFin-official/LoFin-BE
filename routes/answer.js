@@ -96,5 +96,30 @@ router.put("/:id", authenticate, async (req, res) => {
     });
   }
 });
+router.delete("/:questionId", authenticate, async (req, res) => {
+  const { questionId } = req.params;
 
+  if (!questionId) {
+    return res.status(400).json({ message: "질문 ID가 누락되었습니다" });
+  }
+
+  try {
+    // 해당 질문의 내 답변 찾기 및 삭제
+    const deletedAnswer = await Answer.findOneAndDelete({
+      questionId,
+      memberId: req.memberId,
+    });
+
+    if (!deletedAnswer) {
+      return res
+        .status(404)
+        .json({ message: "삭제할 답변을 찾을 수 없습니다" });
+    }
+
+    res.status(200).json({ message: "답변 삭제 완료" });
+  } catch (error) {
+    console.error("답변 삭제 오류:", error);
+    res.status(500).json({ message: "서버 오류", error });
+  }
+});
 module.exports = router;
