@@ -24,13 +24,20 @@ const memoryRoutes = require("./routes/memoryRoutes"); // 추억 라우터 추�
 const questionRoutes = require("./routes/questionRoutes"); // 질문 라우터 추가
 const coupleProfileRoutes = require("./routes/coupleprofile"); // 커플 프로필 라우터 추가
 const answerRoutes = require("./routes/answer"); // 답변 라우터 추가
+const fs = require("fs");
 
+// 서버 시작 전 uploads/memories 폴더가 없으면 생성
+const memoriesDir = path.join(__dirname, "uploads", "memories");
+if (!fs.existsSync(memoriesDir)) {
+  fs.mkdirSync(memoriesDir, { recursive: true });
+  console.log("✅ 'uploads/memories' 폴더 생성 완료");
+}
 const app = express();
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://192.168.35.111:3000"],
+    origin: ["http://localhost:3000", "http://192.168.208.161:3000"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
