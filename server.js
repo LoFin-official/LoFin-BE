@@ -109,6 +109,7 @@ app.use("/coupleprofile", coupleProfileRoutes); // 커플 프로필 라우터 �
 app.use("/answer", answerRoutes); // 답변 라우터 경로 추가
 
 const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
-app.listen(PORT, () => {
-  console.log(`서버가 ${PORT}번 포트에서 실행 중`);
+const httpServer = require("/chat/chatServer"); 
+httpServer.listen(PORT, () => {         //기존 express app에 websocket을 감싸고 Socket.IO를 얹어 서버 확장
+  console.log(`서버 및 WebSocket이 ${PORT}번 포트에서 실행 중`);
 });
