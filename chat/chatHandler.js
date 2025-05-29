@@ -5,23 +5,37 @@ const users = new Map(); // userId -> socket
 function setupSocketEvents(io) {
   io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
+    const coupleId = socket.handshake.query.coupleId; // 클라이언트가 보내야 함
+
     if (userId) {
       users.set(userId, socket);
       console.log(`${userId} 연결됨`);
     }
 
-    socket.on("privateMessage", async ({ to, from, content }) => {
-      const message = new Message({ sender: from, receiver: to, content });
+    // 커플 방에 자동 입장
+    if (coupleId) {
+      socket.join(coupleId);
+      console.log(`${userId}님이 커플 방 ${coupleId}에 자동 입장`);
+    }
+
+    // privateMessage 이벤트 수신: coupleId 방으로 메시지 브로드캐스트
+    socket.on("privateMessage", async ({ to, from, content, imageUrl, coupleId }) => {
+      // 메시지 저장
+      const message = new Message({
+        sender: from,
+        receiver: to,
+        content,
+        imageUrl,
+      });
       await message.save();
 
-      const receiverSocket = users.get(to);
-      if (receiverSocket) {
-        receiverSocket.emit("privateMessage", {
-          from,
-          content,
-          timestamp: new Date(),
-        });
-      }
+      // coupleId 방에 메시지 전송 (본인과 파트너 모두 수신)
+      io.to(coupleId).emit("privateMessage", {
+        from,
+        content,
+        imageUrl,
+        timestamp: new Date(),
+      });
     });
 
     socket.on("disconnect", () => {

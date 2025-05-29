@@ -1,7 +1,7 @@
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const setupSocketEvents = require("./chatHandler");
-const app = require("../server"); // 기존 express app을 불러옴
+const app = require("../server"); // 기존 express app
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
