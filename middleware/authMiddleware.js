@@ -32,7 +32,7 @@ const authenticate = async (req, res, next) => {
     }
 
     req.memberId = user.memberId;
-    req.coupleId = user.coupleId; // ✅ 추가된 필드
+    req.coupleId = user.coupleId; // 추가된 필드
 
     next();
   } catch (err) {

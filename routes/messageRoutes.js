@@ -1,48 +1,50 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Message = require('../models/Message');
+const Message = require("../models/Message");
+const authenticate = require("../middleware/authMiddleware");
+const mongoose = require("mongoose");
 
-// 🔸 메시지 불러오기: 두 사용자 간 메시지 전체 조회
-router.get('/:userId1/:userId2', async (req, res) => {
-  const { userId1, userId2 } = req.params;
-
+// 🔸 메시지 불러오기 (JWT 인증 적용)
+router.get("/message/:senderId/:receiverId", async (req, res) => {
   try {
+    const { senderId, receiverId } = req.params;
+    // DB 쿼리
     const messages = await Message.find({
       $or: [
-        { sender: userId1, receiver: userId2 },
-        { sender: userId2, receiver: userId1 }
-      ]
-    }).sort({ timestamp: 1 }); // 시간순 정렬
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
+      ],
+    }).sort({ createdAt: 1 });
 
     res.status(200).json(messages);
-  } catch (err) {
-    console.error('Failed to get messages:', err);
-    res.status(500).json({ message: '서버 오류로 메시지를 불러올 수 없습니다.' });
+  } catch (error) {
+    console.error(error); // 여기에 에러 로그 출력
+    res.status(500).json({ error: "서버 내부 오류 발생" });
   }
 });
 
-// 🔸 메시지 전송
-router.post('/', async (req, res) => {
-  const { sender, receiver, content, imageUrl } = req.body;
+// 🔸 메시지 전송 (JWT 인증 적용)
+router.post("/", authenticate, async (req, res) => {
+  const { receiver, content, imageUrl } = req.body;
+  const sender = req.memberId; // 토큰에서 추출된 사용자 ID 사용
 
   if (!sender || !receiver || (!content && !imageUrl)) {
-    return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+    return res.status(400).json({ message: "필수 정보가 누락되었습니다." });
   }
 
   try {
     const newMessage = new Message({
       sender,
       receiver,
-      content: content || '',
-      imageUrl: imageUrl || ''
+      content: content || "",
+      imageUrl: imageUrl || "",
     });
 
     await newMessage.save();
-
     res.status(201).json(newMessage);
   } catch (err) {
-    console.error('Failed to send message:', err);
-    res.status(500).json({ message: '메시지 전송 중 오류가 발생했습니다.' });
+    console.error("메시지 전송 실패:", err);
+    res.status(500).json({ message: "메시지 전송 중 오류가 발생했습니다." });
   }
 });
 
