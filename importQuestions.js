@@ -3,11 +3,13 @@ const mongoose = require("mongoose");
 const Question = require("../LoFin-BE/models/question");
 const rawQuestionsData = require("../LoFin-BE/data/myapp.questions.json");
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/myapp";
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://LoFin:KThvo5AS5ixceP5t@lofin.zl6v0zr.mongodb.net/lofinDB?retryWrites=true&w=majority&appName=LoFIn";
 
 async function importQuestions() {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGODB_URI);
     console.log("MongoDB connected");
 
     await Question.deleteMany({ memberId: "system" });

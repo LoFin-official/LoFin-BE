@@ -6,6 +6,10 @@ const MemorySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    coupleId: {
+      type: String,
+      required: true,
+    },
     title: {
       type: String,
       required: true,
@@ -15,8 +19,8 @@ const MemorySchema = new mongoose.Schema(
       required: true,
     },
     imageUrl: {
-      type: String,
-      required: false,
+      type: [String], // 여러 이미지 URL 배열로 변경
+      default: [],
     },
     position: {
       x: { type: Number, default: 0 },
