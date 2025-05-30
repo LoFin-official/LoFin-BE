@@ -7,13 +7,13 @@ const router = express.Router();
 const Memory = require("../models/memory");
 const authenticate = require("../middleware/authMiddleware");
 
-// 📁 업로드 경로 존재하지 않으면 생성
+// 업로드 경로 존재하지 않으면 생성
 const uploadDir = "uploads/memories";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 📷 이미지 저장 설정
+// 이미지 저장 설정
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 /**
- * 📌 추억 생성 (이미지 포함)
+ *  추억 생성 (이미지 포함)
  * 프론트에서 multipart/form-data로 전송해야 함
  */
 router.get("/", authenticate, async (req, res) => {
@@ -108,27 +108,33 @@ router.patch("/:id", async (req, res) => {
 /**
  * 추억 삭제
  */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticate, async (req, res) => {
   try {
-    const memory = await Memory.findById(req.params.id);
+    const memoryId = req.params.id;
+    const coupleId = req.coupleId; // authMiddleware에서 req.coupleId에 저장됨
+
+    const memory = await Memory.findById(memoryId);
     if (!memory) {
-      return res.status(404).json({ error: "Memory not found" });
+      return res.status(404).json({ message: "삭제할 메모리가 없습니다." });
     }
 
-    // 이미지 파일도 같이 삭제 (선택)
-    if (memory.imageUrl) {
-      const filePath = path.join(__dirname, "..", memory.imageUrl);
-      fs.unlink(filePath, (err) => {
-        if (err) console.warn("이미지 파일 삭제 실패:", err);
-      });
+    // 삭제 권한 확인: 메모리의 coupleId와 요청한 사용자의 coupleId가 같은지 체크
+    if (memory.coupleId !== coupleId) {
+      return res.status(403).json({ message: "삭제 권한이 없습니다." });
     }
 
-    await Memory.findByIdAndDelete(req.params.id);
-    res.json({ message: "Memory deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete memory" });
+    await Memory.findByIdAndDelete(memoryId);
+
+    return res.status(200).json({
+      success: true,
+      message: "메모리가 성공적으로 삭제되었습니다.",
+    });
+  } catch (error) {
+    console.error("메모리 삭제 중 오류:", error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 });
+
 router.get("/detail/:id", async (req, res) => {
   try {
     const memory = await Memory.findById(req.params.id);

@@ -5,7 +5,7 @@ const authenticate = require("../middleware/authMiddleware"); // 인증 미들�
 const User = require("../models/User"); // 사용자 모델 추가
 const Answer = require("../models/answer"); // 답변 모델 추가
 
-// ✅ POST: 사용자 질문 저장 (JWT 인증 필요)
+// POST: 사용자 질문 저장 (JWT 인증 필요)
 router.post("/", authenticate, async (req, res) => {
   try {
     const { content } = req.body;
@@ -19,7 +19,7 @@ router.post("/", authenticate, async (req, res) => {
       title: content,
       content,
       memberId,
-      coupleId, // ✅ 커플 ID도 저장
+      coupleId, // 커플 ID도 저장
     });
 
     await newQuestion.save();
@@ -35,7 +35,7 @@ router.post("/", authenticate, async (req, res) => {
     });
   }
 });
-// ✅ GET: 로그인된 커플의 질문 목록 가져오기 (JWT 인증 필요)
+// GET: 로그인된 커플의 질문 목록 가져오기 (JWT 인증 필요)
 router.get("/", authenticate, async (req, res) => {
   try {
     const { coupleId } = req;
@@ -56,7 +56,7 @@ router.get("/", authenticate, async (req, res) => {
   }
 });
 
-// ✅ GET: 시스템 질문 중 하나 랜덤으로 가져오기
+// GET: 시스템 질문 중 하나 랜덤으로 가져오기
 router.get("/random", async (req, res) => {
   try {
     const count = await Question.countDocuments({ memberId: "system" });
@@ -126,6 +126,27 @@ router.get("/:id", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error fetching question details:", error);
     res.status(500).json({ message: "서버 오류", error: error.message });
+  }
+});
+router.delete("/:id", authenticate, async (req, res) => {
+  const { id } = req.params;
+  const memberId = req.memberId;
+
+  try {
+    const question = await Question.findOne({ _id: id, memberId });
+
+    if (!question) {
+      return res.status(404).json({ message: "질문을 찾을 수 없습니다." });
+    }
+
+    await Question.deleteOne({ _id: id });
+
+    return res.json({ message: "질문이 성공적으로 삭제되었습니다." });
+  } catch (error) {
+    console.error("질문 삭제 오류:", error);
+    return res
+      .status(500)
+      .json({ message: "서버 오류로 질문 삭제에 실패했습니다." });
   }
 });
 

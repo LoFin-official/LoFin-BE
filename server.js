@@ -25,19 +25,20 @@ const questionRoutes = require("./routes/questionRoutes"); // 질문 라우터 �
 const coupleProfileRoutes = require("./routes/coupleprofile"); // 커플 프로필 라우터 추가
 const answerRoutes = require("./routes/answer"); // 답변 라우터 추가
 const fs = require("fs");
+const crawlRouter = require("./routes/crawl");
 
 // 서버 시작 전 uploads/memories 폴더가 없으면 생성
 const memoriesDir = path.join(__dirname, "uploads", "memories");
 if (!fs.existsSync(memoriesDir)) {
   fs.mkdirSync(memoriesDir, { recursive: true });
-  console.log("✅ 'uploads/memories' 폴더 생성 완료");
+  console.log("'uploads/memories' 폴더 생성 완료");
 }
 const app = express();
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://192.168.208.161:3000"],
+    origin: ["http://localhost:3000", "http://192.168.35.111:3000"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -45,13 +46,21 @@ app.use(
 // Express 서버 예시
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-mongoose
-  .connect(process.env.MONGO_URI)
+/*mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB 연결 성공");
     // MongoDB 연결 성공 후 카테고리 초기화 실행
     seedCategories();
   })
+  .catch((err) => console.error("MongoDB 연결 실패", err));*/
+
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB 연결 성공!"))
   .catch((err) => console.error("MongoDB 연결 실패", err));
 
 // 기념일 날짜를 기준으로 남은 일수를 계산하는 함수
@@ -114,8 +123,9 @@ app.use("/memory", memoryRoutes); // 추억 라우터 경로 추가
 app.use("/question", questionRoutes); // 질문 라우터 경로 추가
 app.use("/coupleprofile", coupleProfileRoutes); // 커플 프로필 라우터 경로 추가
 app.use("/answer", answerRoutes); // 답변 라우터 경로 추가
+app.use("/crawl", crawlRouter);
 
-const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
+const PORT = process.env.PORT || 5000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
 app.listen(PORT, () => {
   console.log(`서버가 ${PORT}번 포트에서 실행 중`);
 });
