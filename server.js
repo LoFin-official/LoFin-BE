@@ -1,6 +1,5 @@
 require("dotenv").config(); // .env 파일을 로드
 const path = require("path");
-
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -24,6 +23,7 @@ const memoryRoutes = require("./routes/memoryRoutes"); // 추억 라우터 추�
 const questionRoutes = require("./routes/questionRoutes"); // 질문 라우터 추가
 const coupleProfileRoutes = require("./routes/coupleprofile"); // 커플 프로필 라우터 추가
 const answerRoutes = require("./routes/answer"); // 답변 라우터 추가
+const chatServer = require('./chat/chatserver');
 const fs = require("fs");
 const crawlRouter = require("./routes/crawl");
 
@@ -125,7 +125,8 @@ app.use("/coupleprofile", coupleProfileRoutes); // 커플 프로필 라우터 �
 app.use("/answer", answerRoutes); // 답변 라우터 경로 추가
 app.use("/crawl", crawlRouter);
 
-const PORT = process.env.PORT || 5000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
-app.listen(PORT, () => {
-  console.log(`서버가 ${PORT}번 포트에서 실행 중`);
+const PORT = process.env.PORT || 3000; // 환경변수에서 PORT를 사용하고 없으면 3000 사용
+const httpServer = require("./chat/chatserver"); 
+httpServer.listen(PORT, () => {         //기존 express app에 websocket을 감싸고 Socket.IO를 얹어 서버 확장
+  console.log(`서버 및 WebSocket이 ${PORT}번 포트에서 실행 중`);
 });
