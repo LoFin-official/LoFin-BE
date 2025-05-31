@@ -1,21 +1,21 @@
 const Message = require("../models/Message");
 
-const users = new Map(); // userId -> socket
+const users = new Map(); // memberId -> socket
 
 function setupSocketEvents(io) {
   io.on("connection", (socket) => {
-    const userId = socket.handshake.query.userId;
+    const memberId = socket.handshake.query.memberId;
     const coupleId = socket.handshake.query.coupleId; // 클라이언트가 보내야 함
 
-    if (userId) {
-      users.set(userId, socket);
-      console.log(`${userId} 연결됨`);
+    if (memberId) {
+      users.set(memberId, socket);
+      console.log(`${memberId} 연결됨`);
     }
 
     // 커플 방에 자동 입장
     if (coupleId) {
       socket.join(coupleId);
-      console.log(`${userId}님이 커플 방 ${coupleId}에 자동 입장`);
+      console.log(`${memberId}님이 커플 방 ${coupleId}에 자동 입장`);
     }
 
     // privateMessage 이벤트 수신: coupleId 방으로 메시지 브로드캐스트

@@ -25,10 +25,7 @@ cron.schedule("0 0 * * *", async () => {
     const anniversaries = await Anniversary.find();
     for (const anniversary of anniversaries) {
       const updatedDays = getDaysUntilAnniversary(anniversary.date);
-      await Anniversary.updateOne(
-        { _id: anniversary._id },
-        { $set: { days: updatedDays } }
-      );
+      await Anniversary.updateOne({ _id: anniversary._id }, { $set: { days: updatedDays } });
       if (new Date(anniversary.date) < new Date()) {
         await Anniversary.deleteOne({ _id: anniversary._id });
         console.log(`기념일 "${anniversary.title}"가 삭제되었습니다.`);

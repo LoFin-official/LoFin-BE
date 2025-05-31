@@ -39,6 +39,7 @@ router.get("/", authenticate, async (req, res) => {
         profilePicture: myProfile.profilePicture || null,
       },
       partnerProfile: {
+        _id: partnerProfile._id,
         nickname: partnerProfile.nickname,
         birth: partnerProfile.birth
           ? partnerProfile.birth.toISOString().split("T")[0]
