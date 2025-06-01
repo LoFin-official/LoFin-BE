@@ -28,13 +28,15 @@ async function scrapeGmarket(keyword) {
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    // 🔍 상품명 셀렉터 확인 필요 (첫 번째 상품만 추출)
-    const productName = $(".box__item-title span.text__item")
-      .first()
-      .text()
-      .trim();
+    // 여러 상품명 추출 (최대 3개)
+    const productNames = [];
+    $(".box__item-title span.text__item").each((i, elem) => {
+      if (i >= 3) return false; // 3개까지만
+      const name = $(elem).text().trim();
+      if (name) productNames.push(name);
+    });
 
-    return productName ? [productName] : [];
+    return productNames;
   } catch (error) {
     console.error("G마켓 fetch 크롤링 실패:", error.message);
     return [];

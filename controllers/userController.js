@@ -102,18 +102,23 @@ const calculateDaysSinceFirstMet = async (req, res) => {
         .json({ message: "처음 만난 날짜가 설정되지 않았습니다." });
     }
 
+    // 날짜만 비교할 수 있도록 시각 제거
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const firstMetDate = new Date(user.firstMetDate);
+    firstMetDate.setHours(0, 0, 0, 0);
 
-    const diffTime = today - firstMetDate; // 밀리초 단위 차이
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // 일 단위로 변환
+    const diffTime = today - firstMetDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // 올림 ❌ → 내림 ✔
 
-    res.status(200).json({ message: `D-${diffDays}일` });
+    res.status(200).json({ message: `D+${diffDays}일` });
   } catch (err) {
     console.error("D-몇일 계산 오류:", err);
     res.status(500).json({ message: "서버 오류", error: err.message });
   }
 };
+
 // 처음 만난 날짜 조회
 const getFirstMetDate = async (req, res) => {
   try {

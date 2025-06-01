@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema(
     profilePicture: { type: String, default: "" },
     coupleCode: {
       type: String,
-      default: null, // unique 제약을 제거하고 default null로 변경
     },
     connected: {
       type: Boolean,
