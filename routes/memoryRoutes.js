@@ -36,7 +36,7 @@ const upload = multer({ storage });
 router.get("/", authenticate, async (req, res) => {
   try {
     const memories = await Memory.find({ coupleId: req.coupleId }).sort({
-      createdAt: -1,
+      memoryDate: -1, // createdAt 대신 memoryDate 기준 정렬 권장
     });
     res.status(200).json(memories);
   } catch (error) {
@@ -44,9 +44,10 @@ router.get("/", authenticate, async (req, res) => {
     res.status(500).json({ message: "메모리 조회 실패" });
   }
 });
+
 router.post("/", authenticate, upload.array("images", 5), async (req, res) => {
   try {
-    const { title, content, createdAt, position, rotation } = req.body;
+    const { title, content, memoryDate, position, rotation } = req.body;
 
     const imageUrls = req.files.map(
       (file) => `/uploads/memories/${file.filename}`
@@ -57,10 +58,10 @@ router.post("/", authenticate, upload.array("images", 5), async (req, res) => {
       coupleId: req.coupleId,
       title,
       content,
-      createdAt,
+      memoryDate: new Date(memoryDate), // 문자열 → Date 변환
       position: JSON.parse(position),
       rotation: Number(rotation),
-      imageUrl: imageUrls.length > 0 ? imageUrls : null,
+      imageUrl: imageUrls.length > 0 ? imageUrls : [],
     });
 
     await memory.save();
@@ -153,21 +154,17 @@ router.put(
   upload.array("images", 5),
   async (req, res) => {
     try {
-      const { title, content, createdAt, position, rotation, removeImages } =
+      const { title, content, memoryDate, position, rotation, removeImages } =
         req.body;
-      // removeImages: 삭제할 이미지 URL 배열 (JSON 문자열로 보내서 JSON.parse 필요)
 
       const memory = await Memory.findById(req.params.id);
       if (!memory) {
         return res.status(404).json({ error: "Memory not found" });
       }
 
-      // 기존 이미지 배열
       let existingImages = memory.imageUrl || [];
 
-      // 삭제할 이미지가 있으면 제거
       if (removeImages) {
-        // removeImages가 문자열일 경우 파싱
         let imagesToRemove = [];
         if (typeof removeImages === "string") {
           imagesToRemove = JSON.parse(removeImages);
@@ -175,12 +172,10 @@ router.put(
           imagesToRemove = removeImages;
         }
 
-        // 기존 이미지 배열에서 삭제할 이미지 제거
         existingImages = existingImages.filter(
           (img) => !imagesToRemove.includes(img)
         );
 
-        // 실제 이미지 파일도 삭제 (optional)
         imagesToRemove.forEach((imgUrl) => {
           const filePath = path.join(__dirname, "..", imgUrl);
           fs.unlink(filePath, (err) => {
@@ -189,7 +184,6 @@ router.put(
         });
       }
 
-      // 새로 업로드된 이미지 추가
       if (req.files && req.files.length > 0) {
         const newImageUrls = req.files.map(
           (file) => `/uploads/memories/${file.filename}`
@@ -197,10 +191,13 @@ router.put(
         existingImages = existingImages.concat(newImageUrls);
       }
 
-      // 필드 업데이트
       if (title !== undefined) memory.title = title;
       if (content !== undefined) memory.content = content;
-      if (createdAt !== undefined) memory.createdAt = createdAt;
+
+      if (memoryDate !== undefined) {
+        memory.memoryDate = new Date(memoryDate); // 문자열 → Date 변환
+      }
+
       if (position !== undefined) memory.position = JSON.parse(position);
       if (rotation !== undefined) memory.rotation = Number(rotation);
 

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const cron = require("node-cron");
-const httpServer = require("./chat/chatserver");
+const httpServer = require("./chat/chatServer");
 const seedCategories = require("./utils/categorySeeder");
 const Anniversary = require("./models/anniversarymodels");
 

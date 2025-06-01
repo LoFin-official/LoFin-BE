@@ -4,6 +4,7 @@ const { UserCategorySelection } = require("../models/wishlistmodels");
 const User = require("../models/User");
 const auth = require("../middleware/authMiddleware");
 const scrapeGmarket = require("../crawler/coupangScraper"); // 크롤링 함수
+const recommendGiftByFirstMet = require("../crawler/recommendGiftByDday");
 
 router.get("/wishlist", auth, async (req, res) => {
   try {
@@ -39,12 +40,12 @@ router.get("/wishlist", auth, async (req, res) => {
     for (const category of top3Categories) {
       const keyword = category.details?.trim();
       if (keyword) {
-        const searchKeyword = `커플 ${keyword} 선물`; // 🔹 키워드에 "선물" 붙이기
-        const items = await scrapeGmarket(searchKeyword); // 여기서 붙은 키워드로 크롤링
+        const searchKeyword = `커플 ${keyword} 선물`; // 키워드에 "선물" 붙이기
+        const items = await scrapeGmarket(searchKeyword); // 크롤링 실행
         if (items.length > 0) {
           results.push({
-            detail: keyword, // 원래 키워드 (UI 표시용)
-            product: items[0], // 크롤링된 첫 번째 상품명
+            detail: keyword, // UI용 원래 키워드
+            product: items[0], // 첫 번째 상품명 1개만 사용
           });
         }
       }
@@ -58,6 +59,41 @@ router.get("/wishlist", auth, async (req, res) => {
   } catch (err) {
     console.error("추천 에러:", err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get("/dday", auth, async (req, res) => {
+  try {
+    const memberId = req.memberId;
+
+    const user = await User.findOne({ memberId });
+
+    if (!user || !user.firstMetDate) {
+      return res
+        .status(404)
+        .json({ message: "처음 만난 날짜가 설정되지 않았습니다." });
+    }
+
+    const recommendation = await recommendGiftByFirstMet(user.firstMetDate);
+
+    if (
+      !recommendation ||
+      !recommendation.giftList ||
+      recommendation.giftList.length === 0
+    ) {
+      return res
+        .status(200)
+        .json({ message: "다가오는 D-day 기념일이 없습니다." });
+    }
+
+    res.json({
+      dday: recommendation.dday,
+      keyword: recommendation.keyword,
+      recommended: recommendation.giftList, // 최대 3개 상품 배열로 전달
+    });
+  } catch (error) {
+    console.error("추천 실패:", error);
+    res.status(500).json({ message: "추천 실패", error: error.message });
   }
 });
 

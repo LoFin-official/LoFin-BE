@@ -44,11 +44,11 @@ router.post("/selection", auth, async (req, res) => {
       return res.status(400).json({ message: "선택된 카테고리가 없습니다" });
     }
 
-    const partnerId = await getPartnerIdFromMemberId(memberId); // ObjectId 또는 null
+    const partnerId = await getPartnerIdFromMemberId(memberId);
 
     let selection = await UserCategorySelection.findOne({
       memberId,
-      partnerId, // ObjectId 또는 null로 쿼리 가능
+      partnerId,
     });
 
     if (!selection) {
@@ -61,28 +61,29 @@ router.post("/selection", auth, async (req, res) => {
       });
     }
 
+    // 기존 선택 배열 덮어쓰기
+    const newSelectedCategories = [];
+
     selectedCategories.forEach(({ mainCategory, subCategories }) => {
       if (!mainCategory || !Array.isArray(subCategories)) return;
 
       subCategories.forEach((subCategory) => {
         let details = req.body.details?.[subCategory] || subCategory;
 
-        const exists = selection.selectedCategories.some(
-          (cat) =>
-            cat.mainCategory === mainCategory && cat.subCategory === subCategory
-        );
-        if (!exists) {
-          selection.selectedCategories.push({
-            mainCategory,
-            subCategory,
-            details,
-          });
-        }
+        newSelectedCategories.push({
+          mainCategory,
+          subCategory,
+          details,
+        });
       });
     });
 
-    selection.wishlistId = selection._id.toString();
+    selection.selectedCategories = newSelectedCategories;
+    selection.selectionCompleted = false; // 필요 시 상태 초기화
+    selection.skipped = false;
     selection.lastUpdated = Date.now();
+    selection.wishlistId = selection._id.toString();
+
     await selection.save();
 
     res.status(200).json({
@@ -93,7 +94,7 @@ router.post("/selection", auth, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("카테고리 선택 저장 중 에러:", err); // 전체 에러 객체 로그
+    console.error("카테고리 선택 저장 중 에러:", err);
     res.status(500).json({ message: "서버 오류", error: err.message });
   }
 });
@@ -157,6 +158,8 @@ router.post("/selection/skip", auth, async (req, res) => {
         skipped: true,
       });
     } else {
+      selection.selectedCategories = []; // 기존 선택 제거
+      selection.selectionCompleted = false;
       selection.skipped = true;
       selection.lastUpdated = Date.now();
     }
@@ -173,6 +176,33 @@ router.post("/selection/skip", auth, async (req, res) => {
     });
   } catch (err) {
     console.error("Wishlist 저장 중 에러:", err);
+    res.status(500).json({ message: "서버 오류", error: err.message });
+  }
+});
+// 사용자 위시리스트 선택 데이터 조회
+router.get("/selection", auth, async (req, res) => {
+  try {
+    const memberId = req.memberId;
+    const partnerId = (await getPartnerIdFromMemberId(memberId)) || null;
+
+    let selection = await UserCategorySelection.findOne({
+      memberId,
+      partnerId,
+    });
+
+    if (!selection) {
+      return res.status(404).json({ message: "선택된 카테고리가 없습니다." });
+    }
+
+    res.status(200).json({
+      message: "선택된 카테고리 조회 성공",
+      selection: {
+        wishlistId: selection._id.toString(),
+        ...selection.toObject(),
+      },
+    });
+  } catch (err) {
+    console.error("선택 데이터 조회 중 에러:", err);
     res.status(500).json({ message: "서버 오류", error: err.message });
   }
 });

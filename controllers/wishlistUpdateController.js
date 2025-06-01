@@ -38,12 +38,25 @@ const getWishlist = async (req, res) => {
 const updateWishlistItem = async (req, res) => {
   try {
     const memberId = req.memberId;
-    const { selectedCategories, details } = req.body;
+    let { selectedCategories, details } = req.body;
 
     if (!memberId) {
       return res
         .status(400)
         .json({ success: false, message: "사용자 정보가 없습니다." });
+    }
+
+    // selectedCategories가 없으면 빈 배열로 설정
+    if (!selectedCategories) {
+      selectedCategories = [];
+    }
+
+    // details가 없거나 빈 객체이면 기본값 설정
+    if (!details || Object.keys(details).length === 0) {
+      details = {};
+      selectedCategories.forEach((category) => {
+        details[category] = category; // 예: "향수": "향수"
+      });
     }
 
     // 기존 데이터가 있으면 업데이트, 없으면 새로 생성
