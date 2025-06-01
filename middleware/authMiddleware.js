@@ -36,11 +36,11 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error("토큰 검증 오류:", err.message); // 오류 메시지 로깅
+    console.error("토큰 검증 오류:", err.message);
     return res.status(401).json({
       success: false,
       message: "유효하지 않은 토큰입니다.",
-      error: err.message, // 오류 메시지 추가
+      error: err.message,
     });
   }
 };
