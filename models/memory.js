@@ -13,7 +13,8 @@ const MemorySchema = new mongoose.Schema(
     },
     rotation: { type: Number, default: 0 },
 
-    // 사용자가 지정하는 추억 날짜를 별도 필드로 저장
+    styleType: { type: String, default: "default" }, // 예: 'polaroid', 'note', 'plain' 등
+
     memoryDate: { type: Date, required: true },
   },
   {

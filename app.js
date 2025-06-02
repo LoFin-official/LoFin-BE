@@ -32,7 +32,7 @@ app.use(bodyParser.json());
 app.use(
   cors({
     origin: ["http://localhost:3000", process.env.PRIVATE_IP], //.env에 본인 IP입력
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   })
 );
