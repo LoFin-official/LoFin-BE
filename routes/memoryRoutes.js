@@ -47,20 +47,39 @@ router.get("/", authenticate, async (req, res) => {
 
 router.post("/", authenticate, upload.array("images", 5), async (req, res) => {
   try {
-    const { title, content, memoryDate, position, rotation } = req.body;
+    const {
+      title,
+      content,
+      memoryDate,
+      position,
+      // rotation은 이제 req.body에서 직접 가져오지 않고 기본값 0을 사용합니다.
+      styleType,
+    } = req.body;
 
     const imageUrls = req.files.map(
       (file) => `/uploads/memories/${file.filename}`
     );
+
+    // position이 문자열로 올 경우를 대비하여 JSON.parse를 적용
+    let parsedPosition;
+    try {
+      parsedPosition = position ? JSON.parse(position) : { x: 0, y: 0 }; // position이 없을 경우 기본값 설정
+    } catch (e) {
+      console.error("Invalid position JSON:", position, e);
+      return res
+        .status(400)
+        .json({ success: false, message: "잘못된 position 형식입니다." });
+    }
 
     const memory = new Memory({
       memberId: req.memberId,
       coupleId: req.coupleId,
       title,
       content,
-      memoryDate: new Date(memoryDate), // 문자열 → Date 변환
-      position: JSON.parse(position),
-      rotation: Number(rotation),
+      memoryDate: new Date(memoryDate),
+      position: parsedPosition,
+      rotation: 0, //
+      styleType,
       imageUrl: imageUrls.length > 0 ? imageUrls : [],
     });
 
@@ -74,35 +93,6 @@ router.post("/", authenticate, upload.array("images", 5), async (req, res) => {
   } catch (err) {
     console.error("Memory 저장 오류:", err);
     res.status(500).json({ success: false, message: "서버 오류" });
-  }
-});
-
-/**
- * 특정 사용자의 모든 추억 조회
- */
-router.get("/:memberId", async (req, res) => {
-  try {
-    const memories = await Memory.find({ memberId: req.params.memberId });
-    res.json(memories);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to get memories" });
-  }
-});
-
-/**
- * 추억의 위치 및 회전 업데이트
- */
-router.patch("/:id", async (req, res) => {
-  try {
-    const { position, rotation } = req.body;
-    const updatedMemory = await Memory.findByIdAndUpdate(
-      req.params.id,
-      { position, rotation },
-      { new: true }
-    );
-    res.json(updatedMemory);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update memory" });
   }
 });
 
@@ -154,8 +144,15 @@ router.put(
   upload.array("images", 5),
   async (req, res) => {
     try {
-      const { title, content, memoryDate, position, rotation, removeImages } =
-        req.body;
+      const {
+        title,
+        content,
+        memoryDate,
+        position,
+        rotation,
+        removeImages,
+        styleType, // 🔹 추가
+      } = req.body;
 
       const memory = await Memory.findById(req.params.id);
       if (!memory) {
@@ -193,13 +190,11 @@ router.put(
 
       if (title !== undefined) memory.title = title;
       if (content !== undefined) memory.content = content;
-
-      if (memoryDate !== undefined) {
-        memory.memoryDate = new Date(memoryDate); // 문자열 → Date 변환
-      }
-
+      if (memoryDate !== undefined) memory.memoryDate = new Date(memoryDate);
       if (position !== undefined) memory.position = JSON.parse(position);
       if (rotation !== undefined) memory.rotation = Number(rotation);
+
+      if (styleType !== undefined) memory.styleType = styleType; // 🔹 저장
 
       memory.imageUrl = existingImages;
 
@@ -236,5 +231,51 @@ router.post("/upload", authenticate, upload.single("image"), (req, res) => {
     res.status(500).json({ success: false, message: "서버 오류" });
   }
 });
+router.patch("/location/:id", async (req, res) => {
+  try {
+    const { position, rotation } = req.body; // position과 rotation 모두 받음
 
+    const updateFields = {};
+    if (position) {
+      // position이 {x, y} 객체 형태인지 확인
+      if (typeof position.x === "number" && typeof position.y === "number") {
+        updateFields.position = position;
+      } else {
+        return res.status(400).json({
+          error:
+            "유효하지 않은 position 형식입니다. {x: number, y: number} 형태여야 합니다.",
+        });
+      }
+    }
+    if (rotation !== undefined && typeof rotation === "number") {
+      // rotation이 넘어왔고 숫자인 경우에만 업데이트
+      updateFields.rotation = rotation;
+    }
+
+    // 업데이트할 필드가 없는 경우
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({
+        error: "업데이트할 데이터가 없습니다 (position 또는 rotation 필요).",
+      });
+    }
+
+    const updatedMemory = await Memory.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateFields }, // $set 연산자를 사용하여 지정된 필드만 업데이트
+      { new: true, runValidators: true } // new: true는 업데이트된 문서를 반환, runValidators: true는 스키마 유효성 검사 실행
+    );
+
+    if (!updatedMemory) {
+      return res.status(404).json({ error: "메모리를 찾을 수 없습니다." });
+    }
+    res.status(200).json({
+      success: true,
+      message: "메모리 업데이트 성공",
+      memory: updatedMemory,
+    });
+  } catch (error) {
+    console.error("메모리 업데이트 오류:", error); // 서버 로그에 상세 에러 출력
+    res.status(500).json({ error: "서버 오류", details: error.message }); // 클라이언트에 에러 상세 정보 일부 전달
+  }
+});
 module.exports = router;
