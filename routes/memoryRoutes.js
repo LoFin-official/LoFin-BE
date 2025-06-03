@@ -151,7 +151,7 @@ router.put(
         position,
         rotation,
         removeImages,
-        styleType, // 🔹 추가
+        styleType, // 클라이언트에서 보내는 styleType
       } = req.body;
 
       const memory = await Memory.findById(req.params.id);
@@ -159,8 +159,10 @@ router.put(
         return res.status(404).json({ error: "Memory not found" });
       }
 
+      // 기존 이미지 처리
       let existingImages = memory.imageUrl || [];
 
+      // 삭제할 이미지가 있으면 삭제
       if (removeImages) {
         let imagesToRemove = [];
         if (typeof removeImages === "string") {
@@ -181,6 +183,7 @@ router.put(
         });
       }
 
+      // 새 이미지 추가
       if (req.files && req.files.length > 0) {
         const newImageUrls = req.files.map(
           (file) => `/uploads/memories/${file.filename}`
@@ -188,13 +191,17 @@ router.put(
         existingImages = existingImages.concat(newImageUrls);
       }
 
+      // 필드별 업데이트
       if (title !== undefined) memory.title = title;
       if (content !== undefined) memory.content = content;
       if (memoryDate !== undefined) memory.memoryDate = new Date(memoryDate);
       if (position !== undefined) memory.position = JSON.parse(position);
       if (rotation !== undefined) memory.rotation = Number(rotation);
 
-      if (styleType !== undefined) memory.styleType = styleType; // 🔹 저장
+      // styleType도 있으면 업데이트
+      if (styleType !== undefined) {
+        memory.styleType = styleType;
+      }
 
       memory.imageUrl = existingImages;
 
