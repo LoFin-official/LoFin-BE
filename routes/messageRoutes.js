@@ -16,13 +16,21 @@ router.post('/', authenticate, async (req, res) => {
     const newMessage = new Message({ sender: senderId, receiver, content, imageUrl });
     await newMessage.save();
 
-    // 소켓 통해 상대방에게 전송
     const receiverSocket = users.get(receiver);
     if (receiverSocket) {
       receiverSocket.emit('privateMessage', newMessage.toObject());
       console.log(`📤 ${receiver}에게 실시간 메시지 전송`);
     } else {
       console.log(`⚠️ ${receiver}는 오프라인 상태`);
+    }
+
+    // sender에게도 실시간 메시지 전송
+    const senderSocket = users.get(senderId);
+    if (senderSocket) {
+      senderSocket.emit('privateMessage', newMessage.toObject());
+      console.log(`📤 ${senderId}에게 실시간 메시지 전송 (본인)`);
+    } else {
+      console.log(`⚠️ ${senderId}는 오프라인 상태`);
     }
 
     res.status(201).json({ success: true, data: newMessage });
